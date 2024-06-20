@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class TimeManager : MonoBehaviour
+public class TimeManager : MonoBehaviour, ITimeService
 {
     public static TimeManager Instance;
 
@@ -66,26 +66,20 @@ public class TimeManager : MonoBehaviour
 
     private void Update()
     {
-        if (!_isPaused) 
+        if (!_isPaused)
         {
             _currentTime = _currentTime.AddSeconds(Time.deltaTime);
         }
     }
 
-    public DateTime GetCurrentTime()
-    {
-        return _currentTime;
-    }
+    public DateTime GetCurrentTime() => _currentTime;
 
     public void SetCurrentTime(DateTime newTime)
     {
         _currentTime = newTime;
     }
 
-    public string GetCurrentTimezone()
-    {
-        return _currentTimeZoneId ?? "UTC";
-    }
+    public string GetCurrentTimezone() => _currentTimeZoneId ?? "UTC";
 
     public string GetCurrentTimezoneWithOffset()
     {

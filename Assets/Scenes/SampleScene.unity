@@ -831,7 +831,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: DragHand
+  m_text: DragEdit
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -1746,6 +1746,7 @@ RectTransform:
   - {fileID: 1612487862}
   - {fileID: 617761328}
   - {fileID: 966980398}
+  - {fileID: 1942475607}
   m_Father: {fileID: 1102925455}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.6965625, y: 0.36929637}
@@ -4090,7 +4091,6 @@ RectTransform:
   - {fileID: 1981884939}
   - {fileID: 491267142}
   - {fileID: 1281970164}
-  - {fileID: 1942475607}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -4182,10 +4182,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1102925455}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.3457917, y: 0.8634815}
-  m_AnchorMax: {x: 0.64252084, y: 0.95300007}
-  m_AnchoredPosition: {x: 16.5, y: 10}
-  m_SizeDelta: {x: -373, y: -50}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 5.5, y: -80}
+  m_SizeDelta: {x: 197, y: 38}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1281970165
 MonoBehaviour:
@@ -4234,7 +4234,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 66.95
+  m_fontSize: 66.85
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -4624,7 +4624,7 @@ GameObject:
   - component: {fileID: 1612487864}
   - component: {fileID: 1612487863}
   m_Layer: 5
-  m_Name: DragHand
+  m_Name: DragEdit
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4894,17 +4894,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1942475606}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1102925455}
+  m_Father: {fileID: 607692242}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.67089576, y: 0.20544444}
-  m_AnchorMax: {x: 0.94220835, y: 0.34151852}
-  m_AnchoredPosition: {x: 48.5, y: 25.5}
-  m_SizeDelta: {x: -321, y: -97}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 59.308815, y: -70.62273}
+  m_SizeDelta: {x: 199.61572, y: 36.98533}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1942475608
 MonoBehaviour:
@@ -4953,7 +4953,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 93.2
+  m_fontSize: 93.15
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -5234,20 +5234,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bc5d7d8b8e734884814d80a8c0244e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uiElements:
-    editPanel: {fileID: 607692241}
-    hourInput: {fileID: 1057220949}
-    minuteInput: {fileID: 620282690}
-    timezoneDropdown: {fileID: 693821691}
+  buttonController:
     editButton: {fileID: 254973240}
-    applySetTime: {fileID: 1069030455}
+    applySetTimeButton: {fileID: 1069030455}
     dragEditButton: {fileID: 1612487863}
     applyDragButton: {fileID: 617761329}
     closeButton: {fileID: 966980399}
+  textFieldController:
+    hourInput: {fileID: 1057220949}
+    minuteInput: {fileID: 620282690}
+    errorText: {fileID: 1942475608}
     timeText: {fileID: 1981884940}
     dateText: {fileID: 491267143}
     timezoneText: {fileID: 1281970165}
-    errorText: {fileID: 1942475608}
+  dropdownController:
+    timezoneDropdown: {fileID: 693821691}
+  editPanel: {fileID: 607692241}
 --- !u!4 &2086571985
 Transform:
   m_ObjectHideFlags: 0

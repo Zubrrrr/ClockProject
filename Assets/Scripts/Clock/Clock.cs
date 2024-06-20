@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using DG.Tweening;
 
-public class Clock : MonoBehaviour
+public class Clock : MonoBehaviour, IClock
 {
     [SerializeField] private Transform _hourHandBone;
     [SerializeField] private Transform _minuteHandBone;
@@ -11,15 +11,15 @@ public class Clock : MonoBehaviour
     [SerializeField] private SpriteRenderer _hourHandColor;
     [SerializeField] private SpriteRenderer _minuteHandColor;
 
-    private Transform _selectedHand; 
+    private Transform _selectedHand;
     private Camera _camera;
 
     private DateTime _lastUpdateTime;
 
     private bool _isPaused = false;
-    private bool _isEditing = false; 
+    private bool _isEditing = false;
 
-    private float _initialHandAngle; 
+    private float _initialHandAngle;
     private float _initialMouseAngle;
 
     private void Start()
@@ -40,7 +40,7 @@ public class Clock : MonoBehaviour
         {
             HandleMouseInput();
         }
-        else if (!_isPaused) // Обновление стрелок только если не на паузе
+        else if (!_isPaused)
         {
             DateTime currentTime = TimeManager.Instance.GetCurrentTime();
             if (currentTime != _lastUpdateTime)
@@ -94,6 +94,27 @@ public class Clock : MonoBehaviour
     public void StopEditing()
     {
         _isEditing = false;
+    }
+
+    public void StartDragEdit()
+    {
+        _isEditing = true;
+        ChangeClockHandsColor(Color.blue, Color.green);
+    }
+
+    public void ApplyDragEdit()
+    {
+        _isEditing = false;
+        DateTime newTime = CalculateTimeFromHands();
+        TimeManager.Instance.SetCurrentTime(newTime);
+        ChangeClockHandsColor(Color.black, Color.black);
+    }
+
+    public void ResetDragEdit()
+    {
+        _isEditing = false;
+        ChangeClockHandsColor(Color.black, Color.black);
+        ResumeAnimation();
     }
 
     private void InitializeClock()
@@ -206,6 +227,3 @@ public class Clock : MonoBehaviour
         return Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
     }
 }
-
-
-
