@@ -5,10 +5,10 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    [SerializeField] private ButtonController buttonController;
-    [SerializeField] private TextFieldController textFieldController;
-    [SerializeField] private DropdownController dropdownController;
-    [SerializeField] private GameObject editPanel;
+    [SerializeField] private ButtonController _buttonController;
+    [SerializeField] private TextFieldController _textFieldController;
+    [SerializeField] private DropdownController _dropdownController;
+    [SerializeField] private GameObject _editPanel;
 
     private ITimeService _ItimeService;
     private IClock _Iclock;
@@ -41,27 +41,34 @@ public class UIManager : MonoBehaviour
         UpdateUI();
     }
 
+    private void Update()
+    {
+        DateTime currentTime = _ItimeService.GetCurrentTime();
+        _textFieldController.UpdateRealtimeTimeText(currentTime);
+    }
+
+
     private void InitializeUI()
     {
-        buttonController.Initialize(OnEditButtonClick, OnSetTimeButtonClick, OnDragEditButtonClick, OnApplyDragButtonClick, OnCloseButtonClick);
-        textFieldController.Initialize(OnHourInputChanged, OnMinuteInputChanged);
-        dropdownController.Initialize(OnTimezoneChanged);
-        textFieldController.ClearErrorText();
+        _buttonController.Initialize(OnEditButtonClick, OnSetTimeButtonClick, OnDragEditButtonClick, OnApplyDragButtonClick, OnCloseButtonClick);
+        _textFieldController.Initialize(OnHourInputChanged, OnMinuteInputChanged);
+        _dropdownController.Initialize(OnTimezoneChanged);
+        _textFieldController.ClearErrorText();
 
         List<string> timezoneOptions = timezones.Select(tz => tz.DisplayName).ToList();
-        dropdownController.SetOptions(timezoneOptions);
+        _dropdownController.SetOptions(timezoneOptions);
 
         int timezoneIndex = Array.FindIndex(timezones, tz => tz.Id == _ItimeService.GetCurrentTimezone());
         if (timezoneIndex >= 0)
         {
-            dropdownController.SetSelectedIndex(timezoneIndex);
+            _dropdownController.SetSelectedIndex(timezoneIndex);
         }
         else
         {
             Debug.LogError("Current timezone not found in the dropdown options: " + _ItimeService.GetCurrentTimezone());
         }
 
-        editPanel.SetActive(false);
+        _editPanel.SetActive(false);
     }
 
     private void SubscribeEvents()
@@ -71,19 +78,19 @@ public class UIManager : MonoBehaviour
 
     private void OnEditButtonClick()
     {
-        editPanel.SetActive(true);
-        buttonController.editButton.gameObject.SetActive(false);
+        _editPanel.SetActive(true);
+        _buttonController.editButton.gameObject.SetActive(false);
         _ItimeService.PauseTime();
-        textFieldController.UpdateTimezoneText("Edit Mode");
+        _textFieldController.UpdateTimezoneText("Edit Mode");
     }
 
     private void OnSetTimeButtonClick()
     {
-        if (int.TryParse(textFieldController.hourInput.text, out int hours) && int.TryParse(textFieldController.minuteInput.text, out int minutes))
+        if (int.TryParse(_textFieldController.hourInput.text, out int hours) && int.TryParse(_textFieldController.minuteInput.text, out int minutes))
         {
             if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59)
             {
-                textFieldController.SetErrorText("Invalid input for hours or minutes. Please enter numeric values.");
+                _textFieldController.SetErrorText("Invalid input for hours or minutes. Please enter numeric values.");
                 return;
             }
 
@@ -91,13 +98,13 @@ public class UIManager : MonoBehaviour
             _ItimeService.SetCurrentTime(newTime);
             isManualTime = true;
 
-            if (!dropdownController.timezoneDropdown.options.Exists(option => option.text == ManualTimeDisplayName))
+            if (!_dropdownController.timezoneDropdown.options.Exists(option => option.text == ManualTimeDisplayName))
             {
-                dropdownController.AddOption(ManualTimeDisplayName);
+                _dropdownController.AddOption(ManualTimeDisplayName);
             }
 
-            dropdownController.SetSelectedIndex(dropdownController.timezoneDropdown.options.FindIndex(option => option.text == ManualTimeDisplayName));
-            textFieldController.UpdateTimezoneText(ManualTimeDisplayName);
+            _dropdownController.SetSelectedIndex(_dropdownController.timezoneDropdown.options.FindIndex(option => option.text == ManualTimeDisplayName));
+            _textFieldController.UpdateTimezoneText(ManualTimeDisplayName);
 
             _ItimeService.ResumeTime();
             UpdateUI();
@@ -105,7 +112,7 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            textFieldController.SetErrorText("Invalid input for hours or minutes. Please enter numeric values.");
+            _textFieldController.SetErrorText("Invalid input for hours or minutes. Please enter numeric values.");
         }
     }
 
@@ -114,7 +121,7 @@ public class UIManager : MonoBehaviour
         _ItimeService.PauseTime();
         _Iclock.PauseAnimation();
         _Iclock.StartDragEdit();
-        buttonController.SetApplyDragButtonInteractable(true);
+        _buttonController.SetApplyDragButtonInteractable(true);
     }
 
     private void OnApplyDragButtonClick()
@@ -122,12 +129,12 @@ public class UIManager : MonoBehaviour
         _Iclock.ApplyDragEdit();
         isManualTime = true;
 
-        if (!dropdownController.timezoneDropdown.options.Exists(option => option.text == ManualTimeDisplayName))
+        if (!_dropdownController.timezoneDropdown.options.Exists(option => option.text == ManualTimeDisplayName))
         {
-            dropdownController.AddOption(ManualTimeDisplayName);
+            _dropdownController.AddOption(ManualTimeDisplayName);
         }
 
-        dropdownController.SetSelectedIndex(dropdownController.timezoneDropdown.options.FindIndex(option => option.text == ManualTimeDisplayName));
+        _dropdownController.SetSelectedIndex(_dropdownController.timezoneDropdown.options.FindIndex(option => option.text == ManualTimeDisplayName));
 
         _ItimeService.ResumeTime();
         UpdateUI();
@@ -137,14 +144,14 @@ public class UIManager : MonoBehaviour
     private void OnCloseButtonClick()
     {
         isManualTime = false;
-        editPanel.SetActive(false);
+        _editPanel.SetActive(false);
         string currentTimezone = _ItimeService.GetCurrentTimezone();
-        textFieldController.UpdateTimezoneText(_ItimeService.GetCurrentTimezoneWithOffset());
+        _textFieldController.UpdateTimezoneText(_ItimeService.GetCurrentTimezoneWithOffset());
 
         int timezoneIndex = Array.FindIndex(timezones, tz => tz.Id == currentTimezone);
         if (timezoneIndex >= 0)
         {
-            dropdownController.SetSelectedIndex(timezoneIndex);
+            _dropdownController.SetSelectedIndex(timezoneIndex);
         }
         else
         {
@@ -153,39 +160,39 @@ public class UIManager : MonoBehaviour
 
         StartCoroutine(_ItimeService.UpdateTimeFromServer());
         _ItimeService.ResumeTime();
-        textFieldController.ClearErrorText();
+        _textFieldController.ClearErrorText();
         _Iclock.ResetDragEdit();
         CloseEditPanel();
     }
 
     private void OnHourInputChanged()
     {
-        textFieldController.ClearErrorText();
+        _textFieldController.ClearErrorText();
     }
 
     private void OnMinuteInputChanged()
     {
-        textFieldController.ClearErrorText();
+        _textFieldController.ClearErrorText();
     }
 
     private void OnTimezoneChanged(int index)
     {
-        if (index < 0 || index >= dropdownController.timezoneDropdown.options.Count)
+        if (index < 0 || index >= _dropdownController.timezoneDropdown.options.Count)
         {
             Debug.LogError($"Index {index} is out of range in OnTimezoneChanged.");
             return;
         }
 
-        string selectedTimezone = dropdownController.timezoneDropdown.options[index].text;
+        string selectedTimezone = _dropdownController.timezoneDropdown.options[index].text;
         if (selectedTimezone == ManualTimeDisplayName)
         {
             isManualTime = true;
         }
         else
         {
-            if (dropdownController.timezoneDropdown.options.Exists(option => option.text == ManualTimeDisplayName))
+            if (_dropdownController.timezoneDropdown.options.Exists(option => option.text == ManualTimeDisplayName))
             {
-                dropdownController.RemoveOption(ManualTimeDisplayName);
+                _dropdownController.RemoveOption(ManualTimeDisplayName);
             }
 
             int timezoneArrayIndex = Array.FindIndex(timezones, tz => tz.DisplayName == selectedTimezone);
@@ -206,21 +213,15 @@ public class UIManager : MonoBehaviour
     private void UpdateUI()
     {
         DateTime currentTime = _ItimeService.GetCurrentTime();
-        textFieldController.UpdateTimeText(currentTime);
-        textFieldController.UpdateTimezoneText(isManualTime ? ManualTimeDisplayName : _ItimeService.GetCurrentTimezoneWithOffset());
-    }
-
-    private void Update()
-    {
-        DateTime currentTime = _ItimeService.GetCurrentTime();
-        textFieldController.UpdateRealtimeTimeText(currentTime);
+        _textFieldController.UpdateTimeText(currentTime);
+        _textFieldController.UpdateTimezoneText(isManualTime ? ManualTimeDisplayName : _ItimeService.GetCurrentTimezoneWithOffset());
     }
 
     private void CloseEditPanel()
     {
-        buttonController.SetApplyDragButtonInteractable(false);
-        editPanel.SetActive(false);
-        buttonController.editButton.gameObject.SetActive(true);
+        _buttonController.SetApplyDragButtonInteractable(false);
+        _editPanel.SetActive(false);
+        _buttonController.editButton.gameObject.SetActive(true);
     }
 }
 
