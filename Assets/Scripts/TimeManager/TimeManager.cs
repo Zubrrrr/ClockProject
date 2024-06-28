@@ -5,33 +5,17 @@ using UnityEngine.Networking;
 
 public class TimeManager : MonoBehaviour, ITimeService
 {
-    public static TimeManager Instance;
-
     private const string apiUrlTemplate = "https://worldtimeapi.org/api/timezone/{0}";
 
+    private string _currentTimeZoneId = "UTC";
+    private TimeSpan _currentTimeOffset = TimeSpan.Zero;
     private DateTime _currentTime;
-    private string _currentTimeZoneId;
-    private TimeSpan _currentTimeOffset;
-
-    public event Action OnTimeUpdated;
-    public event Action OnPauseTime;
-    public event Action OnResumeTime;
-
     private bool _isPaused = false;
+    private bool _suppressTimeUpdated = false;
 
-    private void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            Debug.Log("TimeManager instance created.");
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
+    public event Action<DateTime> OnTimeUpdated;
+    public event Action<TimeEvent> OnTimeEvent;
+    public event Action OnApiInitialized;
 
     private void Start()
     {
@@ -40,9 +24,46 @@ public class TimeManager : MonoBehaviour, ITimeService
         InvokeRepeating(nameof(UpdateTimeFromServer), 3600f, 3600f);
     }
 
+    private void Update() => UpdateTime();
+
+    public void SetTimezone(string timezoneId)
+    {
+        _currentTimeZoneId = timezoneId;
+        _currentTimeOffset = GetTimezoneOffset(timezoneId);
+        StartCoroutine(UpdateTimeFromServer());
+    }
+
+    public string GetCurrentTimezone()
+    {
+        return _currentTimeZoneId;
+    }
+
+    public string GetCurrentTimezoneWithOffset()
+    {
+        string offsetSign = _currentTimeOffset.TotalHours >= 0 ? "+" : "-";
+        return $"{_currentTimeZoneId.Replace('_', ' ')} (GMT{offsetSign}{Math.Abs(_currentTimeOffset.Hours):00}:{Math.Abs(_currentTimeOffset.Minutes):00})";
+    }
+
+    public void SetCurrentTime(DateTime newTime)
+    {
+        _currentTime = newTime;
+        if (!_suppressTimeUpdated)
+        {
+            OnTimeUpdated?.Invoke(_currentTime);
+        }
+        OnTimeEvent?.Invoke(TimeEvent.TimeUpdated);
+    }
+
+    public DateTime GetCurrentTime()
+    {
+        return _currentTime;
+    }
+
     public IEnumerator UpdateTimeFromServer()
     {
         string apiUrl = string.Format(apiUrlTemplate, _currentTimeZoneId);
+        Debug.Log("Fetching time from: " + apiUrl);
+
         using (UnityWebRequest request = UnityWebRequest.Get(apiUrl))
         {
             yield return request.SendWebRequest();
@@ -50,12 +71,18 @@ public class TimeManager : MonoBehaviour, ITimeService
             if (request.result == UnityWebRequest.Result.Success)
             {
                 string jsonResponse = request.downloadHandler.text;
-                Debug.Log("API Response: " + jsonResponse); // Логирование ответа для отладки
+                Debug.Log("API Response: " + jsonResponse);
                 var timeData = JsonUtility.FromJson<TimeData>(jsonResponse);
                 DateTime utcTime = DateTime.Parse(timeData.datetime).ToUniversalTime();
                 _currentTime = utcTime + _currentTimeOffset;
-                Debug.Log("Time updated: " + _currentTime.ToString("yyyy-MM-dd HH:mm:ss"));
-                OnTimeUpdated?.Invoke();
+                Debug.Log("Time updated to: " + _currentTime);
+
+                if (!_suppressTimeUpdated)
+                {
+                    OnTimeUpdated?.Invoke(_currentTime);
+                }
+                OnTimeEvent?.Invoke(TimeEvent.TimeUpdated);
+                OnApiInitialized?.Invoke(); // Вызов события
             }
             else
             {
@@ -64,54 +91,28 @@ public class TimeManager : MonoBehaviour, ITimeService
         }
     }
 
-    private void Update()
+    private void UpdateTime()
     {
         if (!_isPaused)
         {
             _currentTime = _currentTime.AddSeconds(Time.deltaTime);
-        }
-    }
-
-    public DateTime GetCurrentTime() => _currentTime;
-
-    public void SetCurrentTime(DateTime newTime)
-    {
-        _currentTime = newTime;
-    }
-
-    public string GetCurrentTimezone() => _currentTimeZoneId ?? "UTC";
-
-    public string GetCurrentTimezoneWithOffset()
-    {
-        string offsetSign = _currentTimeOffset.TotalHours >= 0 ? "+" : "-";
-        return $"{_currentTimeZoneId.Replace('_', ' ')} (GMT{offsetSign}{Math.Abs(_currentTimeOffset.Hours):00}:{Math.Abs(_currentTimeOffset.Minutes):00})";
-    }
-
-    public void SetTimezone(string timezoneId)
-    {
-        try
-        {
-            _currentTimeZoneId = timezoneId;
-            _currentTimeOffset = GetTimezoneOffset(timezoneId);
-            Debug.Log("Timezone set to: " + _currentTimeZoneId);
-            StartCoroutine(UpdateTimeFromServer());
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError("Error setting timezone: " + ex.Message);
+            if (!_suppressTimeUpdated)
+            {
+                OnTimeUpdated?.Invoke(_currentTime);
+            }
         }
     }
 
     public void PauseTime()
     {
         _isPaused = true;
-        OnPauseTime?.Invoke();
+        OnTimeEvent?.Invoke(TimeEvent.TimePaused);
     }
 
     public void ResumeTime()
     {
         _isPaused = false;
-        OnResumeTime?.Invoke();
+        OnTimeEvent?.Invoke(TimeEvent.TimeResumed);
     }
 
     private TimeSpan GetTimezoneOffset(string timezoneId)

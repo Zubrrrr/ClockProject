@@ -18,33 +18,58 @@ public class CameraConstantWidth : MonoBehaviour
 
     private void Start()
     {
-        _componentCamera = GetComponent<Camera>();
-        _initialSize = _componentCamera.orthographicSize;
-
-        _targetAspect = _defaultResolution.x / _defaultResolution.y;
-
-        _initialFov = _componentCamera.fieldOfView;
-        _horizontalFov = CalcVerticalFov(_initialFov, 1 / _targetAspect);
+        InitializeCamera();
+        CalculateInitialParameters();
     }
 
     private void Update()
     {
-        if (Screen.width != _screenWidth || Screen.height != _screenHeight)
+        if (ScreenResolutionChanged())
         {
             UpdateResolution();
-            _aspectRatioCoefficient = _screenWidth / _screenHeight;
+            _aspectRatioCoefficient = _screenWidth / (float)_screenHeight;
         }
 
+        UpdateCameraView();
+    }
+
+    private void InitializeCamera() => _componentCamera = GetComponent<Camera>();
+
+    private void CalculateInitialParameters()
+    {
+        _initialSize = _componentCamera.orthographicSize;
+        _targetAspect = _defaultResolution.x / _defaultResolution.y;
+        _initialFov = _componentCamera.fieldOfView;
+        _horizontalFov = CalcVerticalFov(_initialFov, 1 / _targetAspect);
+    }
+
+    private bool ScreenResolutionChanged()
+    {
+        return Screen.width != _screenWidth || Screen.height != _screenHeight;
+    }
+
+    private void UpdateCameraView()
+    {
         if (_componentCamera.orthographic)
         {
-            float constantWidthSize = _initialSize * (_targetAspect / _componentCamera.aspect);
-            _componentCamera.orthographicSize = Mathf.Lerp(constantWidthSize, _initialSize, _widthOrHeight);
+            UpdateOrthographicCamera();
         }
         else
         {
-            float constantWidthFov = CalcVerticalFov(_horizontalFov, _componentCamera.aspect);
-            _componentCamera.fieldOfView = Mathf.Lerp(constantWidthFov, _initialFov, _widthOrHeight);
+            UpdatePerspectiveCamera();
         }
+    }
+
+    private void UpdateOrthographicCamera()
+    {
+        float constantWidthSize = _initialSize * (_targetAspect / _componentCamera.aspect);
+        _componentCamera.orthographicSize = Mathf.Lerp(constantWidthSize, _initialSize, _widthOrHeight);
+    }
+
+    private void UpdatePerspectiveCamera()
+    {
+        float constantWidthFov = CalcVerticalFov(_horizontalFov, _componentCamera.aspect);
+        _componentCamera.fieldOfView = Mathf.Lerp(constantWidthFov, _initialFov, _widthOrHeight);
     }
 
     private float CalcVerticalFov(float hFovInDeg, float aspectRatio)
