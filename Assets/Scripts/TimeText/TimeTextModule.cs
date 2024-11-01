@@ -1,32 +1,53 @@
-using System;
 using UnityEngine;
 using Zenject;
+using System;
 
 public class TimeTextModule : MonoBehaviour
 {
     [SerializeField] private UiText _texts;
 
-    private ITimeService _timeService;
+    private EventAggregator _eventAggregator;
 
     [Inject]
-    private void Construct(ITimeService timeService)
+    private void Construct(EventAggregator eventAggregator)
     {
-        _timeService = timeService;
-        _timeService.OnTimeUpdated += UpdateRealtimeTimeText;
-        _timeService.OnApiInitialized += Initialize;
+        _eventAggregator = eventAggregator;
     }
 
-    private void Initialize()
+    private void OnEnable()
     {
-        UpdateTimezoneText(_timeService.GetCurrentTimezoneWithOffset());
-        GetDateText(_timeService.GetCurrentTime());
+        _eventAggregator.Subscribe<TimeManager.TimeUpdatedEvent>(UpdateRealtimeTimeText);
     }
 
-    private void UpdateTimeText(DateTime currentTime) => _texts.TimeTextUI.text = currentTime.ToString("HH:mm:ss");
+    private void OnDisable()
+    {
+        _eventAggregator.Unsubscribe<TimeManager.TimeUpdatedEvent>(UpdateRealtimeTimeText);
+    }
 
-    private void GetDateText(DateTime currentDate) => _texts.DateTextUI.text = currentDate.ToString("yyyy-MM-dd");
+    private void UpdateRealtimeTimeText(TimeManager.TimeUpdatedEvent eventData)
+    {
+        UpdateTimeTexts(eventData.CurrentTime);
+    }
 
-    private void UpdateTimezoneText(string timezone) => _texts.TimezoneTextUI.text = timezone;
+    private void UpdateTimeTexts(DateTime currentTime)
+    {
+        string formattedTime = currentTime.ToString("HH:mm:ss");
 
-    private void UpdateRealtimeTimeText(DateTime currentTime) => UpdateTimeText(currentTime);
+        foreach (TMPro.TextMeshProUGUI timeTextUI in _texts.TimeTextUIs)
+        {
+            if (timeTextUI != null)
+            {
+                timeTextUI.text = formattedTime;
+            }
+        }
+        GetDateText(currentTime);
+    }
+
+    private void GetDateText(DateTime currentDate)
+    {
+        if (_texts.DateTextUI != null)
+        {
+            _texts.DateTextUI.text = currentDate.ToString("yyyy-MM-dd");
+        }
+    }
 }

@@ -2,29 +2,34 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
+using Zenject;
 
 public class TimeManager : MonoBehaviour, ITimeService
 {
-    private const string apiUrlTemplate = "https://worldtimeapi.org/api/timezone/{0}";
+    private string _currentTimeZoneId;
 
-    private string _currentTimeZoneId = "UTC";
-    private TimeSpan _currentTimeOffset = TimeSpan.Zero;
-    private DateTime _currentTime;
-    private bool _isPaused = false;
-    private bool _suppressTimeUpdated = false;
+    private TimeSpan _currentTimeOffset;
+    private TimeSpan _serverTimeOffset;
 
-    public event Action<DateTime> OnTimeUpdated;
-    public event Action<TimeEvent> OnTimeEvent;
-    public event Action OnApiInitialized;
+    private Coroutine _syncCoroutine;
+    private EventAggregator _eventAggregator;
+
+    [Inject]
+    public void Construct(EventAggregator eventAggregator)
+    {
+        _eventAggregator = eventAggregator;
+    }
 
     private void Start()
     {
         SetTimezone("Europe/Moscow");
-        StartCoroutine(UpdateTimeFromServer());
-        InvokeRepeating(nameof(UpdateTimeFromServer), 3600f, 3600f);
+        _syncCoroutine = StartCoroutine(SyncTimePeriodically());
     }
 
-    private void Update() => UpdateTime();
+    private void Update()
+    {
+        InvokeTimeUpdated();
+    }
 
     public void SetTimezone(string timezoneId)
     {
@@ -46,23 +51,23 @@ public class TimeManager : MonoBehaviour, ITimeService
 
     public void SetCurrentTime(DateTime newTime)
     {
-        _currentTime = newTime;
-        if (!_suppressTimeUpdated)
-        {
-            OnTimeUpdated?.Invoke(_currentTime);
-        }
-        OnTimeEvent?.Invoke(TimeEvent.TimeUpdated);
+        _serverTimeOffset = newTime.ToUniversalTime() - DateTime.UtcNow;
+
+        DateTime currentTime = GetCurrentTime();
+
+        _eventAggregator.Publish(new TimeUpdatedEvent { CurrentTime = currentTime });
     }
 
     public DateTime GetCurrentTime()
     {
-        return _currentTime;
+        return DateTime.UtcNow + _serverTimeOffset + _currentTimeOffset;
     }
 
     public IEnumerator UpdateTimeFromServer()
     {
-        string apiUrl = string.Format(apiUrlTemplate, _currentTimeZoneId);
-        Debug.Log("Fetching time from: " + apiUrl);
+        const string ApiUrlTemplate = "https://timeapi.io/api/Time/current/zone?timeZone={0}";
+
+        string apiUrl = string.Format(ApiUrlTemplate, _currentTimeZoneId);
 
         using (UnityWebRequest request = UnityWebRequest.Get(apiUrl))
         {
@@ -71,48 +76,16 @@ public class TimeManager : MonoBehaviour, ITimeService
             if (request.result == UnityWebRequest.Result.Success)
             {
                 string jsonResponse = request.downloadHandler.text;
-                Debug.Log("API Response: " + jsonResponse);
-                var timeData = JsonUtility.FromJson<TimeData>(jsonResponse);
-                DateTime utcTime = DateTime.Parse(timeData.datetime).ToUniversalTime();
-                _currentTime = utcTime + _currentTimeOffset;
-                Debug.Log("Time updated to: " + _currentTime);
+                TimeData timeData = JsonUtility.FromJson<TimeData>(jsonResponse);
 
-                if (!_suppressTimeUpdated)
-                {
-                    OnTimeUpdated?.Invoke(_currentTime);
-                }
-                OnTimeEvent?.Invoke(TimeEvent.TimeUpdated);
-                OnApiInitialized?.Invoke(); // Вызов события
+                DateTime serverTime = DateTime.Parse(timeData.dateTime);
+                SetCurrentTime(serverTime);
             }
             else
             {
                 Debug.LogError("Error fetching time from server: " + request.error);
             }
         }
-    }
-
-    private void UpdateTime()
-    {
-        if (!_isPaused)
-        {
-            _currentTime = _currentTime.AddSeconds(Time.deltaTime);
-            if (!_suppressTimeUpdated)
-            {
-                OnTimeUpdated?.Invoke(_currentTime);
-            }
-        }
-    }
-
-    public void PauseTime()
-    {
-        _isPaused = true;
-        OnTimeEvent?.Invoke(TimeEvent.TimePaused);
-    }
-
-    public void ResumeTime()
-    {
-        _isPaused = false;
-        OnTimeEvent?.Invoke(TimeEvent.TimeResumed);
     }
 
     private TimeSpan GetTimezoneOffset(string timezoneId)
@@ -128,9 +101,42 @@ public class TimeManager : MonoBehaviour, ITimeService
         }
     }
 
+    private void InvokeTimeUpdated()
+    {
+        DateTime currentTime = GetCurrentTime();
+        _eventAggregator.Publish(new TimeUpdatedEvent { CurrentTime = currentTime });
+    }
+
+    private void OnDestroy()
+    {
+        CancelInvoke(nameof(InvokeTimeUpdated));
+
+        if (_syncCoroutine != null)
+        {
+            StopCoroutine(_syncCoroutine);
+        }
+    }
+
+    private IEnumerator SyncTimePeriodically()
+    {
+        float syncInterval = 3600f;
+        bool isRunning = true;
+
+        while (isRunning)
+        {
+            yield return UpdateTimeFromServer();
+            yield return new WaitForSeconds(syncInterval);
+        }
+    }
+
     [Serializable]
     private class TimeData
     {
-        public string datetime;
+        public string dateTime;
+    }
+
+    public class TimeUpdatedEvent
+    {
+        public DateTime CurrentTime;
     }
 }

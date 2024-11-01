@@ -1,92 +1,83 @@
 using System;
-using DG.Tweening;
+using System.Collections.Generic;
 using UnityEngine;
 using Zenject;
 
 public class ClockAnimationModule : MonoBehaviour
 {
-    [SerializeField] ClockHand _clockHand;
+    [SerializeField]
+    private List<ClockHandEntry> _clockHands;
 
-    private ITimeService _timeService;
+    private EventAggregator _eventAggregator;
 
     [Inject]
-    private void Construct(ITimeService timeService)
+    private void Construct(EventAggregator eventAggregator)
     {
-        _timeService = timeService;
-        _timeService.OnTimeUpdated += UpdateClock;
+        _eventAggregator = eventAggregator;
     }
 
-    private void Start()
+    private void OnEnable()
     {
-        InitializeClock();
-        SubscribeToTimeServiceEvents();
+        _eventAggregator.Subscribe<TimeManager.TimeUpdatedEvent>(OnTimeUpdated);
     }
 
-    private void SubscribeToTimeServiceEvents() => _timeService.OnTimeEvent += HandleTimeEvent;
-    private void UnsubscribeFromTimeServiceEvents() => _timeService.OnTimeEvent -= HandleTimeEvent;
-    private void OnDestroy() => UnsubscribeFromTimeServiceEvents();
-
-    private void InitializeClock()
+    private void OnDisable()
     {
-        DateTime currentTime = _timeService.GetCurrentTime();
-
-        float hours = currentTime.Hour % 12 + currentTime.Minute / 60f;
-        float minutes = currentTime.Minute + currentTime.Second / 60f;
-        float seconds = currentTime.Second + currentTime.Millisecond / 1000f;
-
-        _clockHand.HourHandBone.localRotation = Quaternion.Euler(0, 0, -hours * 30f);
-        _clockHand.MinuteHandBone.localRotation = Quaternion.Euler(0, 0, -minutes * 6f);
-        _clockHand.SecondHandBone.localRotation = Quaternion.Euler(0, 0, -seconds * 6f);
+        _eventAggregator.Unsubscribe<TimeManager.TimeUpdatedEvent>(OnTimeUpdated);
     }
 
-    private void HandleTimeEvent(TimeEvent timeEvent)
+    private void OnTimeUpdated(TimeManager.TimeUpdatedEvent eventData)
     {
-        switch (timeEvent)
-        {
-            case TimeEvent.TimePaused:
-                PauseAnimation();
-                break;
-            case TimeEvent.TimeResumed:
-                ResumeAnimation();
-                break;
-            case TimeEvent.TimeUpdated:
-                DateTime currentTime = _timeService.GetCurrentTime();
-                UpdateClock(currentTime);
-                break;
-        }
-    }
-
-    private void PauseAnimation()
-    {
-        _clockHand.HourHandBone.DOKill();
-        _clockHand.MinuteHandBone.DOKill();
-        _clockHand.SecondHandBone.DOKill();
-    }
-
-    private void ResumeAnimation()
-    {
-        DateTime currentTime = _timeService.GetCurrentTime();
-        UpdateClock(currentTime);
+        UpdateClock(eventData.CurrentTime);
     }
 
     private void UpdateClock(DateTime time)
     {
-        float hours = time.Hour % 12 + time.Minute / 60f;
-        float minutes = time.Minute + time.Second / 60f;
-        float seconds = time.Second + time.Millisecond / 1000f;
-
-        float hourRotation = -hours * 30f;
-        float minuteRotation = -minutes * 6f;
-        float secondRotation = -seconds * 6f;
-
-        AnimateHand(_clockHand.HourHandBone, hourRotation, 1f);
-        AnimateHand(_clockHand.MinuteHandBone, minuteRotation, 1f);
-        AnimateHand(_clockHand.SecondHandBone, secondRotation, 1f);
+        foreach (ClockHandEntry hand in _clockHands)
+        {
+            float units = GetCurrentUnits(time, hand);
+            float rotation = -units * hand.DegreesPerUnit;
+            hand.HandBone.localRotation = Quaternion.Euler(0, 0, rotation);
+        }
     }
 
-    private void AnimateHand(Transform hand, float targetRotation, float duration)
+    private void Start()
     {
-        hand.DOKill();
-        hand.DOLocalRotate(new Vector3(0, 0, targetRotation), duration, RotateMode.Fast).SetEase(Ease.Linear);
+        DateTime currentTime = DateTime.UtcNow;
+
+        UpdateClock(currentTime);
+    }
+
+    private float GetCurrentUnits(DateTime time, ClockHandEntry hand)
+    {
+        int hour = 12;
+
+        float minute = 60;
+        float second = 60;
+        float mikkisecond = 1000f;
+        float units = 0f;
+
+        switch (hand.TimeUnit)
+        {
+            case TimeUnit.Hour:
+                units = time.Hour % hour;
+                if (hand.IncludeNextLowerUnit)
+                    units += time.Minute / minute;
+                break;
+            case TimeUnit.Minute:
+                units = time.Minute;
+                if (hand.IncludeNextLowerUnit)
+                    units += time.Second / second;
+                break;
+            case TimeUnit.Second:
+                units = time.Second;
+                if (hand.IncludeNextLowerUnit)
+                    units += time.Millisecond / mikkisecond;
+                break;
+            case TimeUnit.Millisecond:
+                units = time.Millisecond;
+                break;
+        }
+        return units;
     }
 }
