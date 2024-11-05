@@ -1,4 +1,6 @@
 # ClockProject
+Проект выполнен на Unity версии 2022.3.33f1
+
 
 Этот проект представляет собой модульное приложение, отображающее текущее время и дату. Оно разработано с использованием принципов SOLID и Dependency Injection (DI) с   [Zenject](https://github.com/modesttree/Zenject), а анимация реализована с помощью собственной системы на базе [DOTween](https://assetstore.unity.com/packages/tools/animation/dotween-hotween-v2-27676).
 
