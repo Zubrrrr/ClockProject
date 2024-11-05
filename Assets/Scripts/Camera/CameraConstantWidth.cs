@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class CameraConstantWidth : MonoBehaviour
 {
-    [SerializeField] private Vector2 _defaultResolution = new Vector2(2200, 1000);
-    [SerializeField][Range(0f, 1f)] private float _widthOrHeight = 0;
+    [SerializeField] private Vector2 _defaultResolution;
+    [SerializeField][Range(0f, 1f)] private float _widthOrHeight;
 
     private Camera _componentCamera;
 
@@ -13,7 +13,7 @@ public class CameraConstantWidth : MonoBehaviour
     private float _initialSize;
     private float _targetAspect;
     private float _initialFov;
-    private float _horizontalFov = 120f;
+    private float _horizontalFov;
     private float _aspectRatioCoefficient;
 
     private void Start()

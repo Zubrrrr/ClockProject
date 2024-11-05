@@ -24,6 +24,8 @@ public class ScaleAnimation : BaseAnimation
 
     public override void PlayAnimation()
     {
+        StopAnimation();
+
         Vector3 startScale = _useCurrentScaleAsStart
             ? (_rectTransform != null ? _rectTransform.localScale : transform.localScale)
             : _initialScale;

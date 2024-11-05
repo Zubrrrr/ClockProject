@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace AnimationSystem
 {
-
     public class PreviewController : MonoBehaviour
     {
         [Tooltip("List of animation collections to manage")]
@@ -20,7 +21,16 @@ namespace AnimationSystem
             { AnimationType.Fade, true }
         };
 
-        public void PlaySelectedAnimations(int index)
+        private static readonly Dictionary<AnimationType, Func<CollectionPreview, IEnumerable<BaseAnimation>>> AnimationTypeToAnimations = new Dictionary<AnimationType, Func<CollectionPreview, IEnumerable<BaseAnimation>>>
+        {
+            { AnimationType.Color, c => c.ColorAnimations != null ? c.ColorAnimations.Cast<BaseAnimation>() : Enumerable.Empty<BaseAnimation>() },
+            { AnimationType.Scale, c => c.ScaleAnimations != null ? c.ScaleAnimations.Cast<BaseAnimation>() : Enumerable.Empty<BaseAnimation>() },
+            { AnimationType.Rotate, c => c.RotateAnimations != null ? c.RotateAnimations.Cast<BaseAnimation>() : Enumerable.Empty<BaseAnimation>() },
+            { AnimationType.Move, c => c.MoveAnimations != null ? c.MoveAnimations.Cast<BaseAnimation>() : Enumerable.Empty<BaseAnimation>() },
+            { AnimationType.Fade, c => c.FadeAnimations != null ? c.FadeAnimations.Cast<BaseAnimation>() : Enumerable.Empty<BaseAnimation>() },
+        };
+
+        private void PerformActionOnSelectedAnimations(int index, Action<BaseAnimation> action)
         {
             if (index < 0 || index >= AnimationCollections.Count) return;
 
@@ -30,116 +40,27 @@ namespace AnimationSystem
             {
                 if (_playAnimationTypes[animationType] == false) continue;
 
-                switch (animationType)
+                Func<CollectionPreview, IEnumerable<BaseAnimation>> getAnimations = AnimationTypeToAnimations[animationType];
+                IEnumerable<BaseAnimation> animations = getAnimations(collection);
+
+                foreach (BaseAnimation animation in animations)
                 {
-                    case AnimationType.Color:
-                        if (collection.ColorAnimations != null)
-                        {
-                            foreach (ColorAnimation animation in collection.ColorAnimations)
-                            {
-                                animation?.PreviewAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Scale:
-                        if (collection.ScaleAnimations != null)
-                        {
-                            foreach (ScaleAnimation animation in collection.ScaleAnimations)
-                            {
-                                animation?.PreviewAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Rotate:
-                        if (collection.RotateAnimations != null)
-                        {
-                            foreach (RotateAnimation animation in collection.RotateAnimations)
-                            {
-                                animation?.PreviewAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Move:
-                        if (collection.MoveAnimations != null)
-                        {
-                            foreach (MoveAnimation animation in collection.MoveAnimations)
-                            {
-                                animation?.PreviewAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Fade:
-                        if (collection.FadeAnimations != null)
-                        {
-                            foreach (FadeAnimation animation in collection.FadeAnimations)
-                            {
-                                animation?.PreviewAnimation();
-                            }
-                        }
-                        break;
+                    if (animation != null)
+                    {
+                        action(animation);
+                    }
                 }
             }
         }
 
+        public void PlaySelectedAnimations(int index)
+        {
+            PerformActionOnSelectedAnimations(index, animation => animation.PreviewAnimation());
+        }
+
         public void StopSelectedAnimations(int index)
         {
-            if (index < 0 || index >= AnimationCollections.Count) return;
-
-            CollectionPreview collection = AnimationCollections[index];
-
-            foreach (AnimationType animationType in _playAnimationTypes.Keys)
-            {
-                if (_playAnimationTypes[animationType] == false) continue;
-
-                switch (animationType)
-                {
-                    case AnimationType.Color:
-                        if (collection.ColorAnimations != null)
-                        {
-                            foreach (ColorAnimation animation in collection.ColorAnimations)
-                            {
-                                animation?.StopAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Scale:
-                        if (collection.ScaleAnimations != null)
-                        {
-                            foreach (ScaleAnimation animation in collection.ScaleAnimations)
-                            {
-                                animation?.StopAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Rotate:
-                        if (collection.RotateAnimations != null)
-                        {
-                            foreach (RotateAnimation animation in collection.RotateAnimations)
-                            {
-                                animation?.StopAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Move:
-                        if (collection.MoveAnimations != null)
-                        {
-                            foreach (MoveAnimation animation in collection.MoveAnimations)
-                            {
-                                animation?.StopAnimation();
-                            }
-                        }
-                        break;
-                    case AnimationType.Fade:
-                        if (collection.FadeAnimations != null)
-                        {
-                            foreach (FadeAnimation animation in collection.FadeAnimations)
-                            {
-                                animation?.StopAnimation();
-                            }
-                        }
-                        break;
-                }
-            }
+            PerformActionOnSelectedAnimations(index, animation => animation.StopAnimation());
         }
     }
 }

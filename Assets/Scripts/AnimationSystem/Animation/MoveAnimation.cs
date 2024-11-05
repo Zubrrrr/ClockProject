@@ -17,6 +17,8 @@ public class MoveAnimation : BaseAnimation
 
     public override void PlayAnimation()
     {
+        StopAnimation();
+
         Vector3 startPosition = _useCurrentPositionAsStart ? transform.position : _initialPosition;
 
         transform.position = startPosition;
@@ -24,5 +26,10 @@ public class MoveAnimation : BaseAnimation
             .SetEase(EaseType)
             .SetLoops(Loops, LoopType)
             .SetDelay(Delay);
+    }
+
+    public override void StopAnimation()
+    {
+        base.StopAnimation();
     }
 }

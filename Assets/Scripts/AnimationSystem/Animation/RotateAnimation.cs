@@ -17,6 +17,8 @@ public class RotateAnimation : BaseAnimation
 
     public override void PlayAnimation()
     {
+        StopAnimation();
+
         Vector3 startRotation = _useCurrentRotationAsStart ? transform.eulerAngles : _initialRotation;
 
         transform.eulerAngles = startRotation;

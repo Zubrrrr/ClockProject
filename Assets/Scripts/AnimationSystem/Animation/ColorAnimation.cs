@@ -22,10 +22,9 @@ public class ColorAnimation : BaseAnimation
     [Tooltip("The target color to animate to.")]
     [SerializeField] private Color _targetColor;
 
-    [Tooltip("Animation modes for color transitions: 'Standard' for one-way and 'Flash' for back-and-forth color changes.")]
-    [SerializeField] private enum AnimationMode { Standard, Flash }
-
     private enum ColorComponentType { TextMeshPro, SpriteRenderer, Image, None }
+    private enum AnimationMode { Standard, Flash }
+
     private ColorComponentType _componentType;
 
     private TextMeshProUGUI _textMeshPro;

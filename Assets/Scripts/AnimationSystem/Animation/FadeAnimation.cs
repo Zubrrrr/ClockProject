@@ -37,6 +37,8 @@ public class FadeAnimation : BaseAnimation
 
     public override void PlayAnimation()
     {
+        StopAnimation();
+
         float startAlpha = _useCurrentAlphaAsStart ? GetCurrentAlpha() : _initialAlpha;
         SetAlpha(startAlpha);
 

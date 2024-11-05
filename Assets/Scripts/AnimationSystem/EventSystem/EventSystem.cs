@@ -30,6 +30,7 @@ namespace AnimationSystem
             if (_eventDictionary.TryGetValue(animationEvent, out var thisEvent))
             {
                 thisEvent -= callback;
+
                 if (thisEvent == null)
                 {
                     _eventDictionary.Remove(animationEvent);
